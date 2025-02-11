@@ -2,8 +2,10 @@
 "use client";
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
+  const router = useRouter();
   const [currentForm, setCurrentForm] = useState(1);
 
   const months = [
@@ -371,8 +373,11 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
         You have successfully created your account
       </p>
       <button
-        className="px-8 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-        onClick={() => (window.location.href = "/dashboard")} // or your desired redirect
+        style={{
+          background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+        }}
+        className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity"
+        onClick={() => router.push("/dashboard")}
       >
         Continue
       </button>

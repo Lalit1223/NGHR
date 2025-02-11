@@ -1,4 +1,5 @@
-// app/components/steps/PersonalInfoStep.jsx
+// src/app/components/steps/PersonalInfoStep.jsx
+"use client";
 import React, { useState } from "react";
 
 const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
@@ -17,7 +18,7 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
     </div>
   );
 
-  // Basic Info Form
+  // Basic Info Form (Form 1)
   const renderBasicInfoForm = () => (
     <>
       <FormHeader />
@@ -70,7 +71,10 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
         <button
           type="button"
           onClick={() => setCurrentForm(2)}
-          className="w-full py-3 px-4 text-white rounded-lg gradient-button"
+          style={{
+            background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+          }}
+          className="w-full py-3 px-4 text-white rounded-lg hover:opacity-90 transition-opacity"
         >
           Next
         </button>
@@ -78,7 +82,7 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
     </>
   );
 
-  // Additional Info Form
+  // Additional Info Form (Form 2)
   const renderAdditionalInfoForm = () => (
     <>
       <FormHeader />
@@ -106,21 +110,10 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
             name="keySkills"
             value={formData.keySkills}
             onChange={handleChange}
-            placeholder="Enter Key skills"
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white mb-2"
+            placeholder="Enter Key skills (comma separated)"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            required
           />
-          <div className="flex flex-wrap gap-2">
-            {["Design", "Creative thinking", "UI Design", "UX Design"].map(
-              (skill) => (
-                <span
-                  key={skill}
-                  className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm"
-                >
-                  {skill}
-                </span>
-              )
-            )}
-          </div>
         </div>
 
         <div className="space-y-4">
@@ -135,6 +128,7 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
               onChange={handleChange}
               placeholder="Enter Country"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              required
             />
           </div>
 
@@ -149,6 +143,7 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
               onChange={handleChange}
               placeholder="Enter State"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              required
             />
           </div>
 
@@ -163,6 +158,7 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
               onChange={handleChange}
               placeholder="Enter City"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              required
             />
           </div>
 
@@ -177,9 +173,11 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
               onChange={handleChange}
               placeholder="Enter Pincode"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              required
             />
           </div>
         </div>
+
         <div className="flex justify-between gap-4">
           <button
             type="button"
@@ -191,7 +189,10 @@ const PersonalInfoStep = ({ formData, handleChange, setStep }) => {
           <button
             type="button"
             onClick={() => setStep(2)}
-            className="px-8 py-3 text-white rounded-lg gradient-button flex-1"
+            style={{
+              background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+            }}
+            className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1"
           >
             Next
           </button>
