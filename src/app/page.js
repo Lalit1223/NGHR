@@ -1,101 +1,243 @@
-import Image from "next/image";
+// app/page.jsx
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import PersonalInfoStep from "./components/steps/PersonalInfoStep";
+import DocumentUploadStep from "./components/steps/DocumentUploadStep";
+// import PlanSelectionStep from "./components/steps/PlanSelectionStep"; // Will be added later
+import EducationStep from "./components/steps/EducationStep";
+import EmploymentStep from "./components/steps/EmploymentStep";
+import SuccessStep from "./components/steps/SuccessStep";
+import Navbar from "./components/Navbar";
+
+const Page = () => {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    personalInfo: {
+      fullName: "",
+      email: "",
+      phone: "",
+      bio: "",
+      keySkills: [],
+      country: "",
+      state: "",
+      city: "",
+      pincode: "",
+    },
+    documents: {
+      aadhar: null,
+      pan: null,
+      degree: null,
+    },
+    // plan: {  // Will be added later
+    //   type: "", // "free" or "paid"
+    // },
+    education: {
+      qualification: "",
+      classX: "",
+      classXII: "",
+      stream: "",
+      specialization: "",
+      higherDegree: "",
+      courseType: "",
+      gradingSystem: "",
+      universityName: "",
+      startMonth: "",
+      startYear: "",
+      passMonth: "",
+      passYear: "",
+      skills: [],
+      ratings: {},
+    },
+    employment: {
+      type: "",
+      companies: [
+        {
+          startMonth: "",
+          startYear: "",
+          endMonth: "",
+          endYear: "",
+          companyName: "",
+          title: "",
+          employeeType: "",
+          country: "",
+          state: "",
+          city: "",
+          skills: [],
+          ratings: {
+            overall_rating: 0,
+            work_life_balance: 0,
+          },
+        },
+      ],
+      currentCompanyIndex: 0,
+    },
+  });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        [name]: value,
+      },
+    }));
+  };
+
+  const handleFileUpload = (type, file) => {
+    setFormData((prev) => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [type]: file,
+      },
+    }));
+  };
+
+  const handleEducationChange = (updates) => {
+    setFormData((prev) => ({
+      ...prev,
+      education: {
+        ...prev.education,
+        ...updates,
+      },
+    }));
+  };
+
+  const handleEmploymentChange = (updates) => {
+    setFormData((prev) => {
+      if (updates.type) {
+        return {
+          ...prev,
+          employment: {
+            ...prev.employment,
+            type: updates.type,
+            companies:
+              updates.type === "experienced" ? prev.employment.companies : [],
+          },
+        };
+      }
+
+      const currentCompany = prev.employment.currentCompanyIndex;
+      const updatedCompanies = [...prev.employment.companies];
+      updatedCompanies[currentCompany] = {
+        ...updatedCompanies[currentCompany],
+        ...updates,
+      };
+
+      return {
+        ...prev,
+        employment: {
+          ...prev.employment,
+          companies: updatedCompanies,
+        },
+      };
+    });
+  };
+
+  const addNewCompany = () => {
+    setFormData((prev) => ({
+      ...prev,
+      employment: {
+        ...prev.employment,
+        companies: [
+          ...prev.employment.companies,
+          {
+            startMonth: "",
+            startYear: "",
+            endMonth: "",
+            endYear: "",
+            companyName: "",
+            title: "",
+            employeeType: "",
+            country: "",
+            state: "",
+            city: "",
+            skills: [],
+            ratings: {
+              overall_rating: 0,
+              work_life_balance: 0,
+            },
+          },
+        ],
+        currentCompanyIndex: prev.employment.companies.length,
+      },
+    }));
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <PersonalInfoStep
+            formData={formData.personalInfo}
+            handleChange={handleChange}
+            setStep={setStep}
+          />
+        );
+      case 2:
+        return (
+          <DocumentUploadStep
+            documents={formData.documents}
+            handleFileUpload={handleFileUpload}
+            setStep={setStep}
+            // Now this should set step to 4 (skipping 3 for now)
+          />
+        );
+      // case 3: Plan Selection - skipped for now
+      case 4:
+        return (
+          <EducationStep
+            education={formData.education}
+            handleEducationChange={handleEducationChange}
+            setStep={setStep}
+          />
+        );
+      case 5:
+        return (
+          <EmploymentStep
+            employment={formData.employment}
+            handleEmploymentChange={handleEmploymentChange}
+            addNewCompany={addNewCompany}
+            setStep={setStep}
+          />
+        );
+      default:
+        return (
+          <PersonalInfoStep
+            formData={formData.personalInfo}
+            handleChange={handleChange}
+            setStep={setStep}
+          />
+        );
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <>
+      <Navbar />
+      <div
+        className="flex bg-no-repeat bg-cover bg-center"
+        style={{
+          backgroundImage: `url("/BG .svg")`,
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Content Container */}
+        <div className="flex w-full max-w-7xl mx-auto">
+          {/* Left side - Form */}
+          <div className="w-1/2 flex flex-col justify-center backdrop-blur-sm bg-white/10 rounded-lg my-8 ml-8">
+            <div className="max-w-md mx-auto">{renderStep()}</div>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          {/* Right side - Empty space for pattern visibility */}
+          <div className="w-1/2" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </>
   );
-}
+};
+
+export default Page;
