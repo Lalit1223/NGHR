@@ -30,10 +30,10 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
   const gradingSystems = ["Scale 10", "Scale 4", "% out of 100", "Pass"];
   const qualifications = [
     "Doctorate/PhD",
-    "Masters",
-    "Graduation",
+    "Masters/ Post-Graduation",
+    "Graduation/ Diploma",
     "12th",
-    "10th",
+    "ITI",
   ];
   const specializations = ["BTech", "BE", "BSc", "BCA", "Other"];
 

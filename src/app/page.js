@@ -18,6 +18,9 @@ const Page = () => {
       email: "",
       phone: "",
       bio: "",
+      dateOfBirth: "",
+      language: "",
+
       keySkills: [],
       country: "",
       state: "",
@@ -25,8 +28,8 @@ const Page = () => {
       pincode: "",
     },
     documents: {
-      aadhar: null,
-      pan: null,
+      aadhar: "", // Now storing as a string instead of null
+      pan: "", // Now storing as a string instead of null
       degree: null,
     },
     // plan: {  // Will be added later
@@ -73,6 +76,7 @@ const Page = () => {
       currentCompanyIndex: 0,
     },
   });
+  // Handle text input changes for personal info
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -84,6 +88,17 @@ const Page = () => {
     }));
   };
 
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [field]: value,
+      },
+    }));
+  };
+
+  // ✅ Function to handle file uploads
   const handleFileUpload = (type, file) => {
     setFormData((prev) => ({
       ...prev,
@@ -179,9 +194,9 @@ const Page = () => {
         return (
           <DocumentUploadStep
             documents={formData.documents}
+            handleInputChange={handleInputChange} // ✅ Ensure it's passed
             handleFileUpload={handleFileUpload}
             setStep={setStep}
-            // Now this should set step to 4 (skipping 3 for now)
           />
         );
       // case 3: Plan Selection - skipped for now
