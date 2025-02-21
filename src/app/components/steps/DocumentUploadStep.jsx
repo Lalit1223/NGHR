@@ -1,6 +1,5 @@
-"use client";
+import React, { useState, useEffect } from "react";
 import { Upload } from "lucide-react";
-import { useState } from "react";
 
 const DocumentUploadStep = ({
   documents,
@@ -13,6 +12,8 @@ const DocumentUploadStep = ({
     pan: "",
     degree: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const validateAadhar = (value) => {
     if (!value) return "Aadhar number is required.";
@@ -32,8 +33,8 @@ const DocumentUploadStep = ({
     if (!file) return "Degree certificate is required.";
     return "";
   };
-
-  const handleNext = () => {
+  const handleNext = async (e) => {
+    e.preventDefault();
     const aadharError = validateAadhar(documents.aadhar);
     const panError = validatePan(documents.pan);
     const degreeError = validateUpload(documents.degree);
@@ -45,10 +46,58 @@ const DocumentUploadStep = ({
     });
 
     if (!aadharError && !panError && !degreeError) {
-      setStep(4);
+      setIsSubmitting(true);
+      setApiError(null);
+
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error(
+            "Authentication token not found. Please login again."
+          );
+        }
+
+        // Create FormData and include all fields
+        const formData = new FormData();
+        formData.append("aadharCard", documents.aadhar);
+        formData.append("panCard", documents.pan);
+        formData.append("degreeCertificate", documents.degree);
+
+        console.log("Sending KYC data:", {
+          aadharCard: documents.aadhar,
+          panCard: documents.pan,
+          degreeFile: documents.degree?.name,
+        });
+
+        const response = await fetch("https://nghr.onrender.com/user/kyc", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+        console.log("Response:", data);
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to upload documents");
+        }
+
+        console.log("KYC Success:", data);
+        setStep(4);
+      } catch (error) {
+        console.error("KYC Error:", error);
+        if (error.message.includes("Aadhar and PAN")) {
+          setApiError("Please check the format of your Aadhar and PAN numbers");
+        } else {
+          setApiError(error.message || "Failed to submit KYC details");
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
-
   return (
     <>
       <div className="mb-6">
@@ -57,6 +106,12 @@ const DocumentUploadStep = ({
           Secure Your Data with Our Easy KYC Process
         </h2>
       </div>
+
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Aadhar Card Number Input */}
@@ -75,6 +130,7 @@ const DocumentUploadStep = ({
                 aadhar: validateAadhar(e.target.value),
               }));
             }}
+            disabled={isSubmitting}
           />
           {errors.aadhar && (
             <p className="text-red-500 text-sm mt-1">{errors.aadhar}</p>
@@ -97,6 +153,7 @@ const DocumentUploadStep = ({
                 pan: validatePan(e.target.value.toUpperCase()),
               }));
             }}
+            disabled={isSubmitting}
           />
           {errors.pan && (
             <p className="text-red-500 text-sm mt-1">{errors.pan}</p>
@@ -105,15 +162,21 @@ const DocumentUploadStep = ({
 
         {/* Degree Certificate Upload */}
         <div
-          className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer"
-          onDragOver={(e) => e.preventDefault()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center ${
+            !isSubmitting ? "cursor-pointer" : ""
+          }`}
+          onDragOver={(e) => !isSubmitting && e.preventDefault()}
           onDrop={(e) => {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            handleFileUpload("degree", file);
-            setErrors((prev) => ({ ...prev, degree: validateUpload(file) }));
+            if (!isSubmitting) {
+              e.preventDefault();
+              const file = e.dataTransfer.files[0];
+              handleFileUpload("degree", file);
+              setErrors((prev) => ({ ...prev, degree: validateUpload(file) }));
+            }
           }}
-          onClick={() => document.getElementById("degree-upload").click()}
+          onClick={() =>
+            !isSubmitting && document.getElementById("degree-upload").click()
+          }
         >
           <input
             type="file"
@@ -126,6 +189,7 @@ const DocumentUploadStep = ({
                 degree: validateUpload(e.target.files[0]),
               }));
             }}
+            disabled={isSubmitting}
           />
           <Upload className="mx-auto h-8 w-8 mb-2 text-gray-400" />
           <p className="text-gray-600">
@@ -145,14 +209,19 @@ const DocumentUploadStep = ({
           <button
             onClick={() => setStep(1)}
             className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            disabled={isSubmitting}
           >
             Back
           </button>
           <button
-            onClick={handleNext} // ✅ Run validation before navigating
-            className="px-8 py-3 text-white rounded-lg gradient-button flex-1"
+            onClick={handleNext}
+            style={{
+              background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+            }}
+            className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+            disabled={isSubmitting}
           >
-            Next
+            {isSubmitting ? "Submitting..." : "Next"}
           </button>
         </div>
       </div>

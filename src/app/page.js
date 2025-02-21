@@ -12,29 +12,31 @@ import Navbar from "./components/Navbar";
 
 const Page = () => {
   const [step, setStep] = useState(1);
+
+  // Add documents state here
+  const [documents, setDocuments] = useState({
+    aadhar: "",
+    pan: "",
+    degree: null,
+  });
+
+  // Remove documents from formData
   const [formData, setFormData] = useState({
     personalInfo: {
       fullName: "",
       email: "",
       phone: "",
       bio: "",
-      dateOfBirth: "",
+      dob: "",
       language: "",
-
-      keySkills: [],
-      country: "",
-      state: "",
-      city: "",
-      pincode: "",
+      key_skills: [{ name: "", level: "1" }],
+      location: {
+        country: "",
+        state: "",
+        city: "",
+        pincode: "",
+      },
     },
-    documents: {
-      aadhar: "", // Now storing as a string instead of null
-      pan: "", // Now storing as a string instead of null
-      degree: null,
-    },
-    // plan: {  // Will be added later
-    //   type: "", // "free" or "paid"
-    // },
     education: {
       qualification: "",
       classX: "",
@@ -83,32 +85,73 @@ const Page = () => {
       ...prev,
       personalInfo: {
         ...prev.personalInfo,
-        [name]: value,
+        ...(name === "country" ||
+        name === "state" ||
+        name === "city" ||
+        name === "pincode"
+          ? {
+              location: {
+                ...prev.personalInfo.location,
+                [name]: value,
+              },
+            }
+          : { [name]: value }),
       },
     }));
+  };
+  const handleSkillChange = (index, field, value) => {
+    setFormData((prev) => {
+      const updatedSkills = [...prev.personalInfo.key_skills];
+      updatedSkills[index] = { ...updatedSkills[index], [field]: value };
+
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          key_skills: updatedSkills,
+        },
+      };
+    });
+  };
+
+  const addSkill = () => {
+    setFormData((prev) => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        key_skills: [...prev.personalInfo.key_skills, { name: "", level: "" }],
+      },
+    }));
+  };
+  const removeSkill = (index) => {
+    setFormData((prev) => {
+      const updatedSkills = prev.personalInfo.key_skills.filter(
+        (_, i) => i !== index
+      );
+      return {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          key_skills: updatedSkills,
+        },
+      };
+    });
   };
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
+    setDocuments((prev) => ({
       ...prev,
-      documents: {
-        ...prev.documents,
-        [field]: value,
-      },
+      [field]: value,
     }));
   };
 
-  // ✅ Function to handle file uploads
   const handleFileUpload = (type, file) => {
-    setFormData((prev) => ({
+    console.log("Uploading file:", type, file);
+    setDocuments((prev) => ({
       ...prev,
-      documents: {
-        ...prev.documents,
-        [type]: file,
-      },
+      [type]: file,
     }));
   };
-
   const handleEducationChange = (updates) => {
     setFormData((prev) => ({
       ...prev,
@@ -187,14 +230,17 @@ const Page = () => {
           <PersonalInfoStep
             formData={formData.personalInfo}
             handleChange={handleChange}
+            handleSkillChange={handleSkillChange} // ✅ Fix: Pass function
+            addSkill={addSkill} // ✅ Fix: Pass function
+            removeSkill={removeSkill} // ✅ Pass removeSkill
             setStep={setStep}
           />
         );
       case 2:
         return (
           <DocumentUploadStep
-            documents={formData.documents}
-            handleInputChange={handleInputChange} // ✅ Ensure it's passed
+            documents={documents} // Changed from formData.documents
+            handleInputChange={handleInputChange}
             handleFileUpload={handleFileUpload}
             setStep={setStep}
           />
@@ -222,6 +268,9 @@ const Page = () => {
           <PersonalInfoStep
             formData={formData.personalInfo}
             handleChange={handleChange}
+            handleSkillChange={handleSkillChange} // ✅ Fix: Pass function
+            addSkill={addSkill} // ✅ Fix: Pass function
+            removeSkill={removeSkill} // ✅ Pass removeSkill
             setStep={setStep}
           />
         );

@@ -4,6 +4,8 @@ import React, { useState } from "react";
 
 const EducationStep = ({ education, handleEducationChange, setStep }) => {
   const [currentForm, setCurrentForm] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   // Shared data for dropdowns and options
   const months = [
@@ -115,10 +117,59 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
     </div>
   );
 
-  // Form renders (your existing form renders with the updated NavigationButtons)
+  const handleQualificationSubmit = async () => {
+    if (!education.qualification) {
+      setApiError("Please select your highest qualification");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
+      const response = await fetch(
+        "https://nghr.onrender.com/user/higher-qualifications",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            highestQualification: education.qualification,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Qualification submitted successfully:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit qualification");
+      }
+
+      setCurrentForm(2);
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError(error.message || "Failed to submit qualification");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderForm1 = () => (
     <>
       <FormHeader />
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
+        </div>
+      )}
       <div className="mb-6">
         <label className="block mb-2">
           Highest qualification/ Degree currently pursuing{" "}
@@ -134,27 +185,86 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
                   : ""
               }`}
               onClick={() => handleEducationChange({ qualification: qual })}
+              disabled={isSubmitting}
             >
               {qual}
             </button>
           ))}
         </div>
       </div>
-      <NavigationButtons
-        onBack={() => {
-          setStep(1);
-          setCurrentForm(2);
-        }}
-        onNext={() => setCurrentForm(2)}
-      />
+      <div className="flex justify-between gap-4">
+        <button
+          onClick={() => setStep(2)}
+          className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          disabled={isSubmitting}
+        >
+          Back
+        </button>
+        <button
+          onClick={handleQualificationSubmit}
+          style={{
+            background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+          }}
+          className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Next"}
+        </button>
+      </div>
     </>
   );
+  // ... other imports and code ...
 
-  // ... your existing form renders (2-7) with updated NavigationButtons ...
+  const handleClass10Submit = async () => {
+    if (!education.classX) {
+      setApiError("Please enter your Class X percentage");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
+      const response = await fetch("https://nghr.onrender.com/user/class-10", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          percentage_10th: education.classX,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Class 10 data submitted:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit Class X details");
+      }
+
+      setCurrentForm(3);
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError(error.message || "Failed to submit Class X details");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const renderForm2 = () => (
     <>
       <FormHeader />
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
+        </div>
+      )}
       <div className="mb-6">
         <label className="block mb-2">
           Add class X percentage <span className="text-red-500">*</span>
@@ -165,15 +275,30 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
           value={education.classX}
           onChange={(e) => handleEducationChange({ classX: e.target.value })}
+          disabled={isSubmitting}
         />
       </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(1)}
-        onNext={() => setCurrentForm(3)}
-      />
+      <div className="flex justify-between gap-4">
+        <button
+          onClick={() => setCurrentForm(1)}
+          className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          disabled={isSubmitting}
+        >
+          Back
+        </button>
+        <button
+          onClick={handleClass10Submit}
+          style={{
+            background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+          }}
+          className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Next"}
+        </button>
+      </div>
     </>
   );
-
   const renderForm3 = () => (
     <>
       <FormHeader />
