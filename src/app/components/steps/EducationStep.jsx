@@ -299,31 +299,109 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
       </div>
     </>
   );
+  const handleClass12Submit = async () => {
+    if (!education.stream) {
+      setApiError("Please select a stream");
+      return;
+    }
+    if (!education.classXII) {
+      setApiError("Please enter your Class XII percentage");
+      return;
+    }
+    if (education.stream === "Other" && !education.otherStream) {
+      setApiError("Please specify your stream");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
+      const response = await fetch("https://nghr.onrender.com/user/class-12", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          stream: education.stream === "Other" ? "Other" : education.stream,
+          other_stream:
+            education.stream === "Other" ? education.otherStream : "N/A",
+          percentage_12th: education.classXII,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Class 12 data submitted:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit Class XII details");
+      }
+
+      setCurrentForm(4);
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError(error.message || "Failed to submit Class XII details");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderForm3 = () => (
     <>
       <FormHeader />
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
+        </div>
+      )}
       <div className="space-y-6">
         <div>
           <label className="block mb-2">
             Select stream <span className="text-red-500">*</span>
           </label>
-          <div className="flex gap-3">
-            {streams.map((stream) => (
+          <div className="grid grid-cols-2 gap-3">
+            {[...streams, "Other"].map((stream) => (
               <button
                 key={stream}
                 type="button"
-                className={`p-3 border rounded-lg hover:bg-teal-50${
+                className={`p-3 border rounded-lg hover:bg-teal-50 ${
                   education.stream === stream
                     ? "border-[#004D6D] bg-blue-50"
                     : "border-gray-300"
                 }`}
                 onClick={() => handleEducationChange({ stream })}
+                disabled={isSubmitting}
               >
                 {stream}
               </button>
             ))}
           </div>
         </div>
+
+        {education.stream === "Other" && (
+          <div>
+            <label className="block mb-2">
+              Specify your stream <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter your stream"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300"
+              value={education.otherStream || ""}
+              onChange={(e) =>
+                handleEducationChange({ otherStream: e.target.value })
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
+
         <div>
           <label className="block mb-2">
             Add class XII percentage <span className="text-red-500">*</span>
@@ -336,126 +414,398 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
             onChange={(e) =>
               handleEducationChange({ classXII: e.target.value })
             }
+            disabled={isSubmitting}
           />
         </div>
       </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(2)}
-        onNext={() => setCurrentForm(4)}
-      />
+
+      <div className="flex justify-between gap-4 mt-6">
+        <button
+          onClick={() => setCurrentForm(2)}
+          className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          disabled={isSubmitting}
+        >
+          Back
+        </button>
+        <button
+          onClick={handleClass12Submit}
+          style={{
+            background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+          }}
+          className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Next"}
+        </button>
+      </div>
     </>
   );
 
-  const renderForm4 = () => (
-    <>
-      <FormHeader />
-      <div className="space-y-6">
-        <div>
-          <label className="block mb-2">
-            Specialization in graduation/diploma{" "}
-            <span className="text-red-500">*</span>
-          </label>
-          <select
-            className="w-full px-4 py-3 rounded-lg border border-gray-300"
-            value={education.specialization}
-            onChange={(e) =>
-              handleEducationChange({ specialization: e.target.value })
-            }
+  const handleGraduationSubmit = async () => {
+    if (!education.specialization) {
+      setApiError("Please select your graduation specialization");
+      return;
+    }
+
+    if (
+      !education.graduationScaling ||
+      !education.graduationMarks ||
+      !education.graduationCourseType
+    ) {
+      setApiError("Please fill all graduation details");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
+      const response = await fetch(
+        "https://nghr.onrender.com/user/graduation",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            graduation: education.specialization,
+            graduationScaling: education.graduationScaling,
+            graduationMarks: education.graduationMarks,
+            graduationCourseType: education.graduationCourseType,
+            masters: education.higherDegree || "N/A",
+            mastersScaling: education.mastersScaling || "N/A",
+            mastersMarks: education.mastersMarks || "N/A",
+            mastersCourseType: education.mastersCourseType || "N/A",
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Graduation data submitted:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit graduation details");
+      }
+
+      setCurrentForm(5);
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError(error.message || "Failed to submit graduation details");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderForm4 = () => {
+    const scalingOptions = ["CGPA", "Percentage", "Grade"];
+    const courseTypes = ["Full-time", "Part-time", "Distance Learning"];
+
+    return (
+      <>
+        <FormHeader />
+        {apiError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{apiError}</p>
+          </div>
+        )}
+        <div className="space-y-6">
+          {/* Graduation Details */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-gray-800">
+              Graduation Details
+            </h3>
+
+            <div>
+              <label className="block mb-2">
+                Specialization in graduation/diploma{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                value={education.specialization}
+                onChange={(e) =>
+                  handleEducationChange({ specialization: e.target.value })
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">e.g. BTech</option>
+                {specializations.map((spec) => (
+                  <option key={spec} value={spec}>
+                    {spec}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-2">
+                Scaling System <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                value={education.graduationScaling}
+                onChange={(e) =>
+                  handleEducationChange({ graduationScaling: e.target.value })
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">Select Scaling System</option>
+                {scalingOptions.map((scale) => (
+                  <option key={scale} value={scale}>
+                    {scale}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block mb-2">
+                Marks <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                placeholder={
+                  education.graduationScaling === "CGPA"
+                    ? "Enter CGPA (e.g., 8.5)"
+                    : "Enter Percentage"
+                }
+                value={education.graduationMarks || ""}
+                onChange={(e) =>
+                  handleEducationChange({ graduationMarks: e.target.value })
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div>
+              <label className="block mb-2">
+                Course Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                value={education.graduationCourseType}
+                onChange={(e) =>
+                  handleEducationChange({
+                    graduationCourseType: e.target.value,
+                  })
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">Select Course Type</option>
+                {courseTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Masters Details */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg text-gray-800">
+              Masters Details (Optional)
+            </h3>
+
+            <div>
+              <label className="block mb-2">Higher Degree Qualification</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                placeholder="e.g., MCA, MTech"
+                value={education.higherDegree || ""}
+                onChange={(e) =>
+                  handleEducationChange({ higherDegree: e.target.value })
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {education.higherDegree && (
+              <>
+                <div>
+                  <label className="block mb-2">Scaling System</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                    value={education.mastersScaling || ""}
+                    onChange={(e) =>
+                      handleEducationChange({ mastersScaling: e.target.value })
+                    }
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Select Scaling System</option>
+                    {scalingOptions.map((scale) => (
+                      <option key={scale} value={scale}>
+                        {scale}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-2">Marks</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                    placeholder={
+                      education.mastersScaling === "CGPA"
+                        ? "Enter CGPA (e.g., 9.0)"
+                        : "Enter Percentage"
+                    }
+                    value={education.mastersMarks || ""}
+                    onChange={(e) =>
+                      handleEducationChange({ mastersMarks: e.target.value })
+                    }
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2">Course Type</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300"
+                    value={education.mastersCourseType || ""}
+                    onChange={(e) =>
+                      handleEducationChange({
+                        mastersCourseType: e.target.value,
+                      })
+                    }
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Select Course Type</option>
+                    {courseTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-between gap-4 mt-6">
+          <button
+            onClick={() => setCurrentForm(3)}
+            className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            disabled={isSubmitting}
           >
-            <option value="">e.g. BTech</option>
-            {specializations.map((spec) => (
-              <option key={spec} value={spec}>
-                {spec}
-              </option>
-            ))}
-          </select>
+            Back
+          </button>
+          <button
+            onClick={handleGraduationSubmit}
+            style={{
+              background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+            }}
+            className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Next"}
+          </button>
         </div>
-        <div>
-          <label className="block mb-2">
-            Any higher degree qualification (if any)
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-3 rounded-lg border border-gray-300"
-            value={education.higherDegree}
-            onChange={(e) =>
-              handleEducationChange({ higherDegree: e.target.value })
+      </>
+    );
+  };
+
+  const handleEducationDetailsSubmit = async () => {
+    if (
+      !education.universityName ||
+      !education.startMonth ||
+      !education.startYear ||
+      !education.passMonth ||
+      !education.passYear
+    ) {
+      setApiError("Please fill all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found. Please login again.");
+      }
+
+      const ratingMapping = {
+        extra_curricular_activities: "extra_curriclar_activity_rating",
+        working_environment: "campus_enviornment_rating",
+        job_guarantee: "placement_guarantee_rating",
+        skill_development: "skill_development_rating",
+        faculty: "faculty_rating",
+      };
+
+      const payload = {
+        university: education.universityName,
+        starting_month: education.startMonth,
+        starting_year: education.startYear,
+        passing_month: education.passMonth,
+        passing_year: education.passYear,
+        extra_curricular: education.skills || [],
+        // Map ratings to API expected format
+        ...Object.entries(education.ratings || {}).reduce(
+          (acc, [key, value]) => {
+            const apiKey =
+              ratingMapping[key.toLowerCase().replace(/\s+/g, "_")];
+            if (apiKey) {
+              acc[apiKey] = value;
             }
-          />
-        </div>
-      </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(3)}
-        onNext={() => setCurrentForm(5)}
-      />
-    </>
-  );
+            return acc;
+          },
+          {}
+        ),
+        feedback: "Good experience", // Default feedback
+        like: "Campus environment", // Default like
+        dislike: "None", // Default dislike
+      };
+
+      console.log("Submitting education details:", payload);
+
+      const response = await fetch(
+        "https://nghr.onrender.com/user/education-details",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Education details response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit education details");
+      }
+
+      setStep(5); // Move to next main step
+    } catch (error) {
+      console.error("API Error:", error);
+      setApiError(error.message || "Failed to submit education details");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const renderForm5 = () => (
     <>
       <FormHeader />
-      <div>
-        <label className="block mb-2">
-          Course type <span className="text-red-500">*</span>
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {courseTypes.map((type) => (
-            <button
-              key={type}
-              type="button"
-              className={`px-4 py-2 rounded-lg border ${
-                education.courseType === type
-                  ? "border-[#004D6D] bg-blue-50"
-                  : "border-gray-300"
-              }`}
-              onClick={() => handleEducationChange({ courseType: type })}
-            >
-              {type}
-            </button>
-          ))}
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
         </div>
-      </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(4)}
-        onNext={() => setCurrentForm(6)}
-      />
-    </>
-  );
-
-  const renderForm6 = () => (
-    <>
-      <FormHeader />
-      <div>
-        <label className="block mb-2">
-          Grading system <span className="text-red-500">*</span>
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {gradingSystems.map((system) => (
-            <button
-              key={system}
-              type="button"
-              className={`px-4 py-2 rounded-lg border ${
-                education.gradingSystem === system
-                  ? "border-[#004D6D] bg-blue-50"
-                  : "border-gray-300"
-              }`}
-              onClick={() => handleEducationChange({ gradingSystem: system })}
-            >
-              {system}
-            </button>
-          ))}
-        </div>
-      </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(5)}
-        onNext={() => setCurrentForm(7)}
-      />
-    </>
-  );
-
-  const renderForm7 = () => (
-    <>
-      <FormHeader />
+      )}
       <div className="space-y-6">
         <div>
           <label className="block mb-2">
@@ -468,6 +818,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
             onChange={(e) =>
               handleEducationChange({ universityName: e.target.value })
             }
+            disabled={isSubmitting}
           />
         </div>
 
@@ -482,6 +833,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
               onChange={(e) =>
                 handleEducationChange({ startMonth: e.target.value })
               }
+              disabled={isSubmitting}
             >
               <option value="">Select Month</option>
               {months.map((month) => (
@@ -501,6 +853,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
               onChange={(e) =>
                 handleEducationChange({ startYear: e.target.value })
               }
+              disabled={isSubmitting}
             >
               <option value="">Select Year</option>
               {years.map((year) => (
@@ -523,6 +876,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
               onChange={(e) =>
                 handleEducationChange({ passMonth: e.target.value })
               }
+              disabled={isSubmitting}
             >
               <option value="">Select Month</option>
               {months.map((month) => (
@@ -542,6 +896,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
               onChange={(e) =>
                 handleEducationChange({ passYear: e.target.value })
               }
+              disabled={isSubmitting}
             >
               <option value="">Select Year</option>
               {years.map((year) => (
@@ -555,7 +910,7 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
 
         <div>
           <label className="block mb-2">
-            Key skills <span className="text-red-500">*</span>
+            Extra Curricular Activities <span className="text-red-500">*</span>
           </label>
           <KeySkills
             skills={education.skills || []}
@@ -583,7 +938,6 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
               "Job guarantee",
               "Skill Development",
               "Faculty",
-              "Campus Placements",
             ].map((criteria) => (
               <div key={criteria} className="flex justify-between items-center">
                 <label>
@@ -610,13 +964,28 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
           </div>
         </div>
       </div>
-      <NavigationButtons
-        onBack={() => setCurrentForm(6)}
-        onNext={() => setStep(5)}
-      />
+
+      <div className="flex justify-between gap-4 mt-6">
+        <button
+          onClick={() => setCurrentForm(4)}
+          className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          disabled={isSubmitting}
+        >
+          Back
+        </button>
+        <button
+          onClick={handleEducationDetailsSubmit}
+          style={{
+            background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+          }}
+          className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Next"}
+        </button>
+      </div>
     </>
   );
-
   return (
     <div className="max-w-md">
       {currentForm === 1 && renderForm1()}
@@ -624,8 +993,6 @@ const EducationStep = ({ education, handleEducationChange, setStep }) => {
       {currentForm === 3 && renderForm3()}
       {currentForm === 4 && renderForm4()}
       {currentForm === 5 && renderForm5()}
-      {currentForm === 6 && renderForm6()}
-      {currentForm === 7 && renderForm7()}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-// app/components/steps/EmploymentStep.jsx
 "use client";
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
@@ -7,6 +6,8 @@ import { useRouter } from "next/navigation";
 const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
   const router = useRouter();
   const [currentForm, setCurrentForm] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const months = [
     "January",
@@ -35,28 +36,34 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
     "Internship",
     "Freelance",
   ];
+  const workPolicies = ["Remote", "Hybrid", "On-site"];
 
-  // Reusable Components
   const FormHeader = () => (
     <>
       <p className="text-[#004D6D] font-medium mb-4">Step 5 out of 5</p>
       <h2 className="text-2xl font-bold text-[#004D6D] mb-2">
-        Fill in the Details to help us build your profile and land perfect job
-        opportunities
+        Fill in the Details to help us build your profile
       </h2>
       <p className="text-gray-600 mb-6">Fill up Employment details</p>
     </>
   );
 
-  const StarRating = ({ name, value, onChange }) => (
+  const StarRating = ({ name, value, onChange, disabled = false }) => (
     <div className="flex gap-2">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
-          onClick={() => onChange(name, star)}
+          type="button"
+          onClick={() => !disabled && onChange(name, star)}
           className={`text-2xl ${
             star <= value ? "text-yellow-400" : "text-gray-300"
-          }`}
+          } 
+            ${
+              disabled
+                ? "cursor-not-allowed opacity-50"
+                : "hover:text-yellow-400"
+            }`}
+          disabled={disabled}
         >
           ★
         </button>
@@ -64,59 +71,168 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
     </div>
   );
 
-  // Initial Selection Form
+  const handleEmploymentStatus = async (status) => {
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found");
+
+      const response = await fetch(
+        "https://nghr.onrender.com/user/employment-status",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            employmentStatus: status,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Failed to update status");
+
+      handleEmploymentChange({ employmentStatus: status });
+      setCurrentForm(status === "Experienced" ? 2 : 4);
+    } catch (error) {
+      setApiError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCompanySubmit = async () => {
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found");
+
+      const experience = employment.experiences[employment.currentCompanyIndex];
+
+      const response = await fetch(
+        "https://nghr.onrender.com/user/employment-details",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            experiences: [
+              {
+                start_month: experience.start_month,
+                start_year: experience.start_year,
+                currently_working: experience.currently_working,
+                company: experience.company,
+                role: experience.role,
+                employmentType: experience.employmentType,
+                country: experience.country,
+                state: experience.state,
+                job_skills: experience.job_skills,
+                ctc: experience.ctc,
+                ctc_display: experience.ctc_display,
+                overall_rating: experience.overall_rating,
+                work_life_rating: experience.work_life_rating,
+                salary_benifits_rating: experience.salary_benifits_rating,
+                promotions_appraisal_rating:
+                  experience.promotions_appraisal_rating,
+                job_security_rating: experience.job_security_rating,
+                skill_development_rating: experience.skill_development_rating,
+                work_satisfaction_rating: experience.work_satisfaction_rating,
+                company_culture_rating: experience.company_culture_rating,
+                like: experience.like || "Good work environment",
+                dislike: experience.dislike || "None",
+                work_policy: experience.work_policy,
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Failed to submit details");
+
+      setCurrentForm(4);
+    } catch (error) {
+      setApiError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExperienceChange = (updates) => {
+    handleEmploymentChange({
+      experiences: employment.experiences.map((exp, index) =>
+        index === employment.currentCompanyIndex ? { ...exp, ...updates } : exp
+      ),
+    });
+  };
+
   const renderEmploymentTypeForm = () => (
     <>
       <FormHeader />
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{apiError}</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         {[
           {
-            id: "experienced",
+            id: "Experienced",
             title: "I'm experienced",
             desc: "I have work experience",
           },
-          { id: "fresher", title: "I'm a fresher", desc: "Recent Graduate" },
+          { id: "Fresher", title: "I'm a fresher", desc: "Recent Graduate" },
           {
-            id: "intern",
+            id: "Intern",
             title: "I'm an intern",
             desc: "Currently pursuing studies",
           },
           {
-            id: "freelancer",
+            id: "Freelancer",
             title: "I'm a freelancer",
             desc: "Working on projects",
           },
         ].map((type) => (
-          <div
+          <button
             key={type.id}
-            onClick={() => {
-              handleEmploymentChange({ type: type.id });
-              if (type.id === "experienced") {
-                setCurrentForm(2);
-              } else {
-                setCurrentForm(4);
-              }
-            }}
-            className={`p-4 border rounded-lg cursor-pointer hover:border-teal-600 ${
-              employment.type === type.id ? "border-teal-600 bg-teal-50" : ""
-            }`}
+            type="button"
+            onClick={() => handleEmploymentStatus(type.id)}
+            disabled={isSubmitting}
+            className={`p-4 border rounded-lg cursor-pointer hover:border-teal-600 
+              ${
+                employment.employmentStatus === type.id
+                  ? "border-teal-600 bg-teal-50"
+                  : ""
+              } 
+              ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <h3 className="font-medium">{type.title}</h3>
             <p className="text-sm text-gray-600">{type.desc}</p>
-          </div>
+          </button>
         ))}
       </div>
     </>
   );
 
-  // Add Experience Button Form
   const renderAddExperienceForm = () => (
     <>
       <FormHeader />
       <div className="text-center py-8">
         <button
           onClick={() => setCurrentForm(3)}
-          className="flex items-center justify-center gap-2 mx-auto px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          disabled={isSubmitting}
+          className="flex items-center justify-center gap-2 mx-auto px-6 py-3 
+            bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50"
         >
           <Plus size={20} />
           Add Experience
@@ -125,252 +241,324 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
     </>
   );
 
-  // Company Details Form
-  const renderCompanyDetailsForm = () => (
-    <>
-      <FormHeader />
-      <div className="space-y-6">
-        <p className="font-medium text-[#004D6D]">Company 1</p>
+  const renderCompanyDetailsForm = () => {
+    const experience = employment.experiences[employment.currentCompanyIndex];
 
-        {/* Start Date */}
-        <div className="grid grid-cols-2 gap-4">
+    return (
+      <>
+        <FormHeader />
+        {apiError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{apiError}</p>
+          </div>
+        )}
+        <div className="space-y-6">
+          <p className="font-medium text-[#004D6D]">
+            Company {employment.currentCompanyIndex + 1}
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1">
+                Start month <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                value={experience.start_month}
+                onChange={(e) =>
+                  handleExperienceChange({ start_month: e.target.value })
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">Select Month</option>
+                {months.map((month) => (
+                  <option key={month} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1">
+                Start year <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                value={experience.start_year}
+                onChange={(e) =>
+                  handleExperienceChange({ start_year: e.target.value })
+                }
+                disabled={isSubmitting}
+              >
+                <option value="">Select Year</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 mb-4">
+              <input
+                type="checkbox"
+                checked={experience.currently_working}
+                onChange={(e) =>
+                  handleExperienceChange({
+                    currently_working: e.target.checked,
+                  })
+                }
+                disabled={isSubmitting}
+              />
+              <span>I currently work here</span>
+            </label>
+          </div>
+
           <div>
             <label className="block mb-1">
-              Start month <span className="text-red-500">*</span>
+              Company name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300"
+              value={experience.company}
+              onChange={(e) =>
+                handleExperienceChange({ company: e.target.value })
+              }
+              disabled={isSubmitting}
+              placeholder="Enter company name"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1">
+              Role <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300"
+              value={experience.role}
+              onChange={(e) => handleExperienceChange({ role: e.target.value })}
+              disabled={isSubmitting}
+              placeholder="Enter your role"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1">
+              Employment type <span className="text-red-500">*</span>
             </label>
             <select
               className="w-full px-4 py-2 rounded-lg border border-gray-300"
-              value={employment.startMonth}
+              value={experience.employmentType}
               onChange={(e) =>
-                handleEmploymentChange({ startMonth: e.target.value })
+                handleExperienceChange({ employmentType: e.target.value })
               }
+              disabled={isSubmitting}
             >
-              <option value="">Select Month</option>
-              {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
+              <option value="">Select Type</option>
+              {employeeTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
                 </option>
               ))}
             </select>
           </div>
+
           <div>
             <label className="block mb-1">
-              Start year <span className="text-red-500">*</span>
+              Work Policy <span className="text-red-500">*</span>
             </label>
             <select
               className="w-full px-4 py-2 rounded-lg border border-gray-300"
-              value={employment.startYear}
+              value={experience.work_policy}
               onChange={(e) =>
-                handleEmploymentChange({ startYear: e.target.value })
+                handleExperienceChange({ work_policy: e.target.value })
               }
+              disabled={isSubmitting}
             >
-              <option value="">Select Year</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
+              <option value="">Select Work Policy</option>
+              {workPolicies.map((policy) => (
+                <option key={policy} value={policy}>
+                  {policy}
                 </option>
               ))}
             </select>
           </div>
-        </div>
 
-        {/* End Date */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block mb-1">
-              End month <span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full px-4 py-2 rounded-lg border border-gray-300"
-              value={employment.endMonth}
-              onChange={(e) =>
-                handleEmploymentChange({ endMonth: e.target.value })
-              }
-            >
-              <option value="">Select Month</option>
-              {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1">
-              End year <span className="text-red-500">*</span>
-            </label>
-            <select
-              className="w-full px-4 py-2 rounded-lg border border-gray-300"
-              value={employment.endYear}
-              onChange={(e) =>
-                handleEmploymentChange({ endYear: e.target.value })
-              }
-            >
-              <option value="">Select Year</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Company Details */}
-        <div>
-          <label className="block mb-1">
-            Company name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.companyName}
-            onChange={(e) =>
-              handleEmploymentChange({ companyName: e.target.value })
-            }
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.title}
-            onChange={(e) => handleEmploymentChange({ title: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1">
-            Employee type <span className="text-red-500">*</span>
-          </label>
-          <select
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.employeeType}
-            onChange={(e) =>
-              handleEmploymentChange({ employeeType: e.target.value })
-            }
-          >
-            <option value="">Select Type</option>
-            {employeeTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Location */}
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Country"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.country}
-            onChange={(e) =>
-              handleEmploymentChange({ country: e.target.value })
-            }
-          />
-          <input
-            type="text"
-            placeholder="State"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.state}
-            onChange={(e) => handleEmploymentChange({ state: e.target.value })}
-          />
-          <input
-            type="text"
-            placeholder="City"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300"
-            value={employment.city}
-            onChange={(e) => handleEmploymentChange({ city: e.target.value })}
-          />
-        </div>
-
-        {/* Key Skills */}
-        <div>
-          <label className="block mb-1">
-            Key skills <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Enter Key skills"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-2"
-          />
-          <div className="flex flex-wrap gap-2">
-            {["Design", "Creative thinking", "UI Design", "UX Design"].map(
-              (skill) => (
-                <span
-                  key={skill}
-                  className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-sm"
-                >
-                  {skill}
-                </span>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Company Rating */}
-        <div>
-          <h3 className="font-medium mb-4">
-            Rate the Company on the following criteria
-          </h3>
           <div className="space-y-4">
-            {["Overall Rating", "Work - Life Balance"].map((criteria) => (
-              <div key={criteria} className="flex justify-between items-center">
-                <label>
-                  {criteria} <span className="text-red-500">*</span>
-                </label>
-                <StarRating
-                  name={criteria.toLowerCase().replace(/\s+/g, "_")}
-                  value={
-                    employment.ratings?.[
-                      criteria.toLowerCase().replace(/\s+/g, "_")
-                    ] || 0
-                  }
-                  onChange={(name, value) => {
-                    handleEmploymentChange({
-                      ratings: {
-                        ...(employment.ratings || {}),
-                        [name]: value,
-                      },
-                    });
-                  }}
-                />
-              </div>
-            ))}
+            <div>
+              <label className="block mb-1">
+                Country <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter country"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                value={experience.country}
+                onChange={(e) =>
+                  handleExperienceChange({ country: e.target.value })
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block mb-1">
+                State <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter state"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                value={experience.state}
+                onChange={(e) =>
+                  handleExperienceChange({ state: e.target.value })
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block mb-1">
+              CTC <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Enter CTC (e.g., 12 LPA)"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300"
+              value={experience.ctc}
+              onChange={(e) => handleExperienceChange({ ctc: e.target.value })}
+              disabled={isSubmitting}
+            />
+            <label className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                checked={experience.ctc_display}
+                onChange={(e) =>
+                  handleExperienceChange({ ctc_display: e.target.checked })
+                }
+                disabled={isSubmitting}
+              />
+              <span>Display my CTC publicly</span>
+            </label>
+          </div>
+
+          <div>
+            <label className="block mb-1">
+              Job Skills <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Add skills (comma separated)"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300"
+              value={
+                experience.job_skills ? experience.job_skills.join(", ") : ""
+              }
+              onChange={(e) =>
+                handleExperienceChange({
+                  job_skills: e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <h3 className="font-medium mb-4">Rate your experience</h3>
+            <div className="space-y-4">
+              {[
+                { key: "overall_rating", label: "Overall Rating" },
+                { key: "work_life_rating", label: "Work-Life Balance" },
+                { key: "salary_benifits_rating", label: "Salary & Benefits" },
+                {
+                  key: "promotions_appraisal_rating",
+                  label: "Promotions & Appraisal",
+                },
+                { key: "job_security_rating", label: "Job Security" },
+                { key: "skill_development_rating", label: "Skill Development" },
+                { key: "work_satisfaction_rating", label: "Work Satisfaction" },
+                { key: "company_culture_rating", label: "Company Culture" },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex justify-between items-center">
+                  <label>
+                    {label} <span className="text-red-500">*</span>
+                  </label>
+                  <StarRating
+                    name={key}
+                    value={experience[key] || 0}
+                    onChange={(name, value) =>
+                      handleExperienceChange({ [name]: value })
+                    }
+                    disabled={isSubmitting}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block mb-1">
+              What did you like? <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              placeholder="Share what you liked about working here"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 min-h-[100px]"
+              value={experience.like || ""}
+              onChange={(e) => handleExperienceChange({ like: e.target.value })}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label className="block mb-1">What could be improved?</label>
+            <textarea
+              placeholder="Share what could be improved"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 min-h-[100px]"
+              value={experience.dislike || ""}
+              onChange={(e) =>
+                handleExperienceChange({ dislike: e.target.value })
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="flex justify-between gap-4 pt-4">
+            <button
+              onClick={() => setCurrentForm(2)}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              disabled={isSubmitting}
+            >
+              Back
+            </button>
+            <button
+              onClick={handleCompanySubmit}
+              style={{
+                background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
+              }}
+              className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Next"}
+            </button>
           </div>
         </div>
+      </>
+    );
+  };
 
-        <div className="flex justify-between pt-4">
-          <button
-            onClick={() => setCurrentForm(2)}
-            className="px-6 py-2 border border-gray-300 rounded-lg"
-          >
-            Back
-          </button>
-          <button
-            onClick={() => setCurrentForm(4)}
-            className="px-6 py-2 bg-teal-600 text-white rounded-lg"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </>
-  );
-
-  const renderSuccesForm = () => (
+  const renderSuccessForm = () => (
     <div className="text-center py-12">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">
         Congratulations!
       </h2>
       <p className="text-gray-600 mb-8">
-        You have successfully created your account
+        You have successfully completed your profile
       </p>
       <button
         style={{
@@ -378,8 +566,9 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
         }}
         className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity"
         onClick={() => router.push("/dashboard")}
+        disabled={isSubmitting}
       >
-        Continue
+        Go to Dashboard
       </button>
     </div>
   );
@@ -389,7 +578,7 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
       {currentForm === 1 && renderEmploymentTypeForm()}
       {currentForm === 2 && renderAddExperienceForm()}
       {currentForm === 3 && renderCompanyDetailsForm()}
-      {currentForm === 4 && renderSuccesForm()}
+      {currentForm === 4 && renderSuccessForm()}
     </div>
   );
 };

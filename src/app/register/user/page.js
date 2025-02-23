@@ -2,13 +2,13 @@
 "use client";
 
 import React, { useState } from "react";
-import PersonalInfoStep from "./components/steps/PersonalInfoStep";
-import DocumentUploadStep from "./components/steps/DocumentUploadStep";
+import PersonalInfoStep from "../../components/steps/PersonalInfoStep";
+import DocumentUploadStep from "../../components/steps/DocumentUploadStep";
 // import PlanSelectionStep from "./components/steps/PlanSelectionStep"; // Will be added later
-import EducationStep from "./components/steps/EducationStep";
-import EmploymentStep from "./components/steps/EmploymentStep";
-import SuccessStep from "./components/steps/SuccessStep";
-import Navbar from "./components/Navbar";
+import EducationStep from "../../components/steps/EducationStep";
+import EmploymentStep from "../../components/steps/EmploymentStep";
+import SuccessStep from "../../components/steps/SuccessStep";
+import Navbar from "../../components/Navbar";
 
 const Page = () => {
   const [step, setStep] = useState(1);
@@ -43,36 +43,56 @@ const Page = () => {
       classXII: "",
       stream: "",
       specialization: "",
-      higherDegree: "",
-      courseType: "",
-      gradingSystem: "",
-      universityName: "",
-      startMonth: "",
-      startYear: "",
-      passMonth: "",
-      passYear: "",
-      skills: [],
-      ratings: {},
+      graduationScaling: "",
+      graduationMarks: "",
+      graduationCourseType: "",
+      mastersScaling: "",
+      mastersMarks: "",
+      mastersCourseType: "",
+
+      universityName: "", // will be sent as "university"
+      startMonth: "", // will be sent as "starting_month"
+      startYear: "", // will be sent as "starting_year"
+      passMonth: "", // will be sent as "passing_month"
+      passYear: "", // will be sent as "passing_year"
+      skills: [], // will be sent as "extra_curricular"
+      ratings: {
+        extra_curricular_activities: 0, // maps to extra_curriclar_activity_rating
+        working_environment: 0, // maps to campus_enviornment_rating
+        job_guarantee: 0, // maps to placement_guarantee_rating
+        skill_development: 0, // maps to skill_development_rating
+        faculty: 0, // maps to faculty_rating
+      },
+      feedback: "", // Add this
+      like: "", // Add this
+      dislike: "", // Add this
     },
     employment: {
-      type: "",
-      companies: [
+      employmentStatus: "", // for first API
+      experiences: [
         {
-          startMonth: "",
-          startYear: "",
-          endMonth: "",
-          endYear: "",
-          companyName: "",
-          title: "",
-          employeeType: "",
+          start_month: "",
+          start_year: "",
+          currently_working: false,
+          company: "",
+          role: "",
+          employmentType: "",
           country: "",
           state: "",
-          city: "",
-          skills: [],
-          ratings: {
-            overall_rating: 0,
-            work_life_balance: 0,
-          },
+          job_skills: [],
+          ctc: "",
+          ctc_display: false,
+          overall_rating: 0,
+          work_life_rating: 0,
+          salary_benifits_rating: 0,
+          promotions_appraisal_rating: 0,
+          job_security_rating: 0,
+          skill_development_rating: 0,
+          work_satisfaction_rating: 0,
+          company_culture_rating: 0,
+          like: "",
+          dislike: "",
+          work_policy: "",
         },
       ],
       currentCompanyIndex: 0,
@@ -164,22 +184,37 @@ const Page = () => {
 
   const handleEmploymentChange = (updates) => {
     setFormData((prev) => {
-      if (updates.type) {
+      // If updating employment status
+      if (updates.employmentStatus) {
         return {
           ...prev,
           employment: {
             ...prev.employment,
-            type: updates.type,
-            companies:
-              updates.type === "experienced" ? prev.employment.companies : [],
+            employmentStatus: updates.employmentStatus,
+            experiences:
+              updates.employmentStatus.toLowerCase() === "experienced"
+                ? prev.employment.experiences
+                : [],
           },
         };
       }
 
-      const currentCompany = prev.employment.currentCompanyIndex;
-      const updatedCompanies = [...prev.employment.companies];
-      updatedCompanies[currentCompany] = {
-        ...updatedCompanies[currentCompany],
+      // If updating experiences
+      if (updates.experiences) {
+        return {
+          ...prev,
+          employment: {
+            ...prev.employment,
+            experiences: updates.experiences,
+          },
+        };
+      }
+
+      // For single experience updates
+      const currentIndex = prev.employment.currentCompanyIndex;
+      const updatedExperiences = [...prev.employment.experiences];
+      updatedExperiences[currentIndex] = {
+        ...updatedExperiences[currentIndex],
         ...updates,
       };
 
@@ -187,38 +222,44 @@ const Page = () => {
         ...prev,
         employment: {
           ...prev.employment,
-          companies: updatedCompanies,
+          experiences: updatedExperiences,
         },
       };
     });
   };
-
   const addNewCompany = () => {
     setFormData((prev) => ({
       ...prev,
       employment: {
         ...prev.employment,
-        companies: [
-          ...prev.employment.companies,
+        experiences: [
+          ...prev.employment.experiences,
           {
-            startMonth: "",
-            startYear: "",
-            endMonth: "",
-            endYear: "",
-            companyName: "",
-            title: "",
-            employeeType: "",
+            start_month: "",
+            start_year: "",
+            currently_working: false,
+            company: "",
+            role: "",
+            employmentType: "",
             country: "",
             state: "",
-            city: "",
-            skills: [],
-            ratings: {
-              overall_rating: 0,
-              work_life_balance: 0,
-            },
+            job_skills: [],
+            ctc: "",
+            ctc_display: false,
+            overall_rating: 0,
+            work_life_rating: 0,
+            salary_benifits_rating: 0,
+            promotions_appraisal_rating: 0,
+            job_security_rating: 0,
+            skill_development_rating: 0,
+            work_satisfaction_rating: 0,
+            company_culture_rating: 0,
+            like: "",
+            dislike: "",
+            work_policy: "",
           },
         ],
-        currentCompanyIndex: prev.employment.companies.length,
+        currentCompanyIndex: prev.employment.experiences.length,
       },
     }));
   };
