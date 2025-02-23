@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useState } from "react";
-import PersonalInfoStep from "../../components/steps/PersonalInfoStep";
-import DocumentUploadStep from "../../components/steps/DocumentUploadStep";
+import PersonalInfoStep from "../../components/steps/user/PersonalInfoStep";
+import DocumentUploadStep from "../../components/steps/user/DocumentUploadStep";
 // import PlanSelectionStep from "./components/steps/PlanSelectionStep"; // Will be added later
-import EducationStep from "../../components/steps/EducationStep";
-import EmploymentStep from "../../components/steps/EmploymentStep";
-import SuccessStep from "../../components/steps/SuccessStep";
+import EducationStep from "../../components/steps/user/EducationStep";
+import EmploymentStep from "../../components/steps/user/EmploymentStep";
+import SuccessStep from "../../components/steps/user/SuccessStep";
 import Navbar from "../../components/Navbar";
 
 const Page = () => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -24,10 +24,8 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
     "December",
   ];
 
-  const years = Array.from(
-    { length: 30 },
-    (_, i) => new Date().getFullYear() - i
-  );
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 30 }, (_, i) => currentYear - i);
 
   const employeeTypes = [
     "Full-time",
@@ -36,7 +34,15 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
     "Internship",
     "Freelance",
   ];
+
   const workPolicies = ["Remote", "Hybrid", "On-site"];
+
+  // Get available end years based on start year
+  const getAvailableEndYears = (startYear) => {
+    if (!startYear) return years;
+    const startYearNum = parseInt(startYear);
+    return years.filter((year) => year >= startYearNum);
+  };
 
   const FormHeader = () => (
     <>
@@ -57,12 +63,9 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
           onClick={() => !disabled && onChange(name, star)}
           className={`text-2xl ${
             star <= value ? "text-yellow-400" : "text-gray-300"
-          } 
-            ${
-              disabled
-                ? "cursor-not-allowed opacity-50"
-                : "hover:text-yellow-400"
-            }`}
+          } ${
+            disabled ? "cursor-not-allowed opacity-50" : "hover:text-yellow-400"
+          }`}
           disabled={disabled}
         >
           ★
@@ -87,9 +90,7 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            employmentStatus: status,
-          }),
+          body: JSON.stringify({ employmentStatus: status }),
         }
       );
 
@@ -116,6 +117,14 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
 
       const experience = employment.experiences[employment.currentCompanyIndex];
 
+      // Validate required fields including end date if not currently working
+      if (
+        !experience.currently_working &&
+        (!experience.end_month || !experience.end_year)
+      ) {
+        throw new Error("Please fill in end date");
+      }
+
       const response = await fetch(
         "https://nghr.onrender.com/user/employment-details",
         {
@@ -130,6 +139,12 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
                 start_month: experience.start_month,
                 start_year: experience.start_year,
                 currently_working: experience.currently_working,
+                ...(experience.currently_working
+                  ? {}
+                  : {
+                      end_month: experience.end_month,
+                      end_year: experience.end_year,
+                    }),
                 company: experience.company,
                 role: experience.role,
                 employmentType: experience.employmentType,
@@ -169,6 +184,15 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
   };
 
   const handleExperienceChange = (updates) => {
+    // If updating start_year, clear end dates
+    if (updates.start_year) {
+      updates = {
+        ...updates,
+        end_month: "",
+        end_year: "",
+      };
+    }
+
     handleEmploymentChange({
       experiences: employment.experiences.map((exp, index) =>
         index === employment.currentCompanyIndex ? { ...exp, ...updates } : exp
@@ -243,6 +267,7 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
 
   const renderCompanyDetailsForm = () => {
     const experience = employment.experiences[employment.currentCompanyIndex];
+    const availableEndYears = getAvailableEndYears(experience.start_year);
 
     return (
       <>
@@ -257,63 +282,114 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
             Company {employment.currentCompanyIndex + 1}
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-1">
-                Start month <span className="text-red-500">*</span>
-              </label>
-              <select
-                className="w-full px-4 py-2 rounded-lg border border-gray-300"
-                value={experience.start_month}
-                onChange={(e) =>
-                  handleExperienceChange({ start_month: e.target.value })
-                }
-                disabled={isSubmitting}
-              >
-                <option value="">Select Month</option>
-                {months.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1">
+                  Start month <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                  value={experience.start_month}
+                  onChange={(e) =>
+                    handleExperienceChange({ start_month: e.target.value })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select Month</option>
+                  {months.map((month) => (
+                    <option key={month} value={month}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1">
+                  Start year <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                  value={experience.start_year}
+                  onChange={(e) =>
+                    handleExperienceChange({ start_year: e.target.value })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select Year</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block mb-1">
-                Start year <span className="text-red-500">*</span>
-              </label>
-              <select
-                className="w-full px-4 py-2 rounded-lg border border-gray-300"
-                value={experience.start_year}
-                onChange={(e) =>
-                  handleExperienceChange({ start_year: e.target.value })
-                }
-                disabled={isSubmitting}
-              >
-                <option value="">Select Year</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="flex items-center gap-2 mb-4">
-              <input
-                type="checkbox"
-                checked={experience.currently_working}
-                onChange={(e) =>
-                  handleExperienceChange({
-                    currently_working: e.target.checked,
-                  })
-                }
-                disabled={isSubmitting}
-              />
-              <span>I currently work here</span>
-            </label>
+            <div>
+              <label className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  checked={experience.currently_working}
+                  onChange={(e) =>
+                    handleExperienceChange({
+                      currently_working: e.target.checked,
+                      ...(e.target.checked && {
+                        end_month: "",
+                        end_year: "",
+                      }),
+                    })
+                  }
+                  disabled={isSubmitting}
+                />
+                <span>I currently work here</span>
+              </label>
+            </div>
+
+            {!experience.currently_working && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1">
+                    End month <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                    value={experience.end_month || ""}
+                    onChange={(e) =>
+                      handleExperienceChange({ end_month: e.target.value })
+                    }
+                    disabled={isSubmitting || !experience.start_year}
+                  >
+                    <option value="">Select Month</option>
+                    {months.map((month) => (
+                      <option key={month} value={month}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block mb-1">
+                    End year <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300"
+                    value={experience.end_year || ""}
+                    onChange={(e) =>
+                      handleExperienceChange({ end_year: e.target.value })
+                    }
+                    disabled={isSubmitting || !experience.start_year}
+                  >
+                    <option value="">Select Year</option>
+                    {availableEndYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -541,10 +617,36 @@ const EmploymentStep = ({ employment, handleEmploymentChange, setStep }) => {
               style={{
                 background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
               }}
-              className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50"
+              className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-opacity flex-1 disabled:opacity-50 flex items-center justify-center"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting..." : "Next"}
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Submitting...
+                </>
+              ) : (
+                "Next"
+              )}
             </button>
           </div>
         </div>
