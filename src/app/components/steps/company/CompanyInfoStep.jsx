@@ -470,7 +470,7 @@ const CompanyInfoStep = ({ token }) => {
       </p>
 
       <button
-        onClick={() => router.push("/dashboard")}
+        onClick={() => router.push("/dashboard/company")}
         className="px-8 py-3 text-white rounded-lg hover:opacity-90 transition-colors"
         style={{
           background: "linear-gradient(90deg, #05445E 0%, #00A7AC 100%)",
